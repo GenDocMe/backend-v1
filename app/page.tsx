@@ -1,103 +1,339 @@
-import Image from "next/image";
+'use client';
+import { useState } from 'react';
+import { FaFilePdf, FaInstagram } from 'react-icons/fa';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [clubInfo, setClubInfo] = useState({
+    name: 'Tech Club',
+    mission: 'Empowering developers worldwide',
+    foundingDate: '2020-01-01',
+    upcomingEvents: 'Workshop: Next.js Fundamentals, Hackathon: AI Applications',
+    benefits: 'Expert mentorship, Project funding, Networking opportunities',
+    achievements: 'Won 2023 Innovation Award, Reached 1000 members',
+    leadershipTeam: 'John Doe - President, Jane Smith - VP',
+    socialMedia: {
+      facebook: 'techclub',
+      twitter: 'techclub',
+      instagram: 'techclub.official'
+    },
+    contactEmail: 'contact@techclub.com',
+    contactPhone: '+1-555-123-4567',
+    websiteUrl: 'techclub.dev',
+    meetingFrequency: 'Every Tuesday 7PM',
+    meetingLocation: 'Campus Room 203',
+    currentMemberCount: '127'
+  });
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const [logo, setLogo] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [outputType, setOutputType] = useState<'pdf' | 'social'>('pdf');
+
+  const handleSocialChange = (platform: string, value: string) => {
+    setClubInfo({
+      ...clubInfo,
+      socialMedia: {
+        ...clubInfo.socialMedia,
+        [platform]: value
+      }
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('clubInfo', JSON.stringify(clubInfo));
+      formData.append('outputType', outputType);
+      if (logo) formData.append('logo', logo);
+
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Generation failed');
+
+      if (outputType === 'pdf') {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'club-poster.pdf';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } else {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const img = new window.Image();
+        img.src = url;
+        img.onload = () => {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `social-post-${Date.now()}.png`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url);
+        };
+      }
+    } catch (error) {
+      console.error('Generation failed:', error);
+      alert('Failed to generate');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-8 text-gray-800">
+      <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-8">
+        <h1 className="text-3xl font-bold mb-8">Poster & Social Post Generator</h1>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Output Type Selector */}
+          <div className="flex gap-4 mb-4">
+            <button
+              type="button"
+              onClick={() => setOutputType('pdf')}
+              className={`px-4 py-2 rounded-lg ${
+                outputType === 'pdf' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-200 text-gray-700'
+              }`}
+            >
+              PDF Poster
+            </button>
+            <button
+              type="button"
+              onClick={() => setOutputType('social')}
+              className={`px-4 py-2 rounded-lg ${
+                outputType === 'social' 
+                  ? 'bg-pink-600 text-white' 
+                  : 'bg-gray-200 text-gray-700'
+              }`}
+            >
+              Social Media Post
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Club Name */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Club Name *</label>
+              <input
+                type="text"
+                value={clubInfo.name}
+                onChange={(e) => setClubInfo({ ...clubInfo, name: e.target.value })}
+                className="w-full p-2 border rounded-lg"
+                required
+              />
+            </div>
+
+            {/* Founding Date */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Founding Date *</label>
+              <input
+                type="date"
+                value={clubInfo.foundingDate}
+                onChange={(e) => setClubInfo({ ...clubInfo, foundingDate: e.target.value })}
+                className="w-full p-2 border rounded-lg"
+                required
+              />
+            </div>
+
+            {/* Mission */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-2">Mission Statement *</label>
+              <input
+                type="text"
+                value={clubInfo.mission}
+                onChange={(e) => setClubInfo({ ...clubInfo, mission: e.target.value })}
+                className="w-full p-2 border rounded-lg"
+                required
+              />
+            </div>
+
+            {/* Upcoming Events */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-2">Upcoming Events (comma separated)</label>
+              <input
+                type="text"
+                value={clubInfo.upcomingEvents}
+                onChange={(e) => setClubInfo({ ...clubInfo, upcomingEvents: e.target.value })}
+                className="w-full p-2 border rounded-lg"
+                placeholder="e.g. Workshop: Next.js Fundamentals, Hackathon: AI Applications"
+              />
+            </div>
+
+            {/* Membership Benefits */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-2">Membership Benefits (comma separated)</label>
+              <input
+                type="text"
+                value={clubInfo.benefits}
+                onChange={(e) => setClubInfo({ ...clubInfo, benefits: e.target.value })}
+                className="w-full p-2 border rounded-lg"
+                placeholder="e.g. Expert mentorship, Project funding, Networking opportunities"
+              />
+            </div>
+
+            {/* Achievements */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-2">Achievements (comma separated)</label>
+              <input
+                type="text"
+                value={clubInfo.achievements}
+                onChange={(e) => setClubInfo({ ...clubInfo, achievements: e.target.value })}
+                className="w-full p-2 border rounded-lg"
+                placeholder="e.g. Won 2023 Innovation Award, Reached 1000 members"
+              />
+            </div>
+
+            {/* Leadership Team */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-2">Leadership Team (comma separated)</label>
+              <input
+                type="text"
+                value={clubInfo.leadershipTeam}
+                onChange={(e) => setClubInfo({ ...clubInfo, leadershipTeam: e.target.value })}
+                className="w-full p-2 border rounded-lg"
+                placeholder="e.g. John Doe - President, Jane Smith - VP"
+              />
+            </div>
+
+            {/* Social Media Handles */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Facebook Handle</label>
+              <input
+                type="text"
+                value={clubInfo.socialMedia.facebook}
+                onChange={(e) => handleSocialChange('facebook', e.target.value)}
+                className="w-full p-2 border rounded-lg"
+                placeholder="e.g. techclub"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Twitter Handle</label>
+              <input
+                type="text"
+                value={clubInfo.socialMedia.twitter}
+                onChange={(e) => handleSocialChange('twitter', e.target.value)}
+                className="w-full p-2 border rounded-lg"
+                placeholder="e.g. techclub"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">Instagram Handle</label>
+              <input
+                type="text"
+                value={clubInfo.socialMedia.instagram}
+                onChange={(e) => handleSocialChange('instagram', e.target.value)}
+                className="w-full p-2 border rounded-lg"
+                placeholder="e.g. techclub.official"
+              />
+            </div>
+
+            {/* Contact Email */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Contact Email *</label>
+              <input
+                type="email"
+                value={clubInfo.contactEmail}
+                onChange={(e) => setClubInfo({ ...clubInfo, contactEmail: e.target.value })}
+                className="w-full p-2 border rounded-lg"
+                required
+              />
+            </div>
+
+            {/* Contact Phone */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Contact Phone</label>
+              <input
+                type="text"
+                value={clubInfo.contactPhone}
+                onChange={(e) => setClubInfo({ ...clubInfo, contactPhone: e.target.value })}
+                className="w-full p-2 border rounded-lg"
+                placeholder="e.g. +1-555-123-4567"
+              />
+            </div>
+
+            {/* Website URL */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-2">Website URL</label>
+              <input
+                type="text"
+                value={clubInfo.websiteUrl}
+                onChange={(e) => setClubInfo({ ...clubInfo, websiteUrl: e.target.value })}
+                className="w-full p-2 border rounded-lg"
+                placeholder="e.g. techclub.dev"
+              />
+            </div>
+
+            {/* Meeting Frequency */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Meeting Frequency</label>
+              <input
+                type="text"
+                value={clubInfo.meetingFrequency}
+                onChange={(e) => setClubInfo({ ...clubInfo, meetingFrequency: e.target.value })}
+                className="w-full p-2 border rounded-lg"
+                placeholder="e.g. Every Tuesday 7PM"
+              />
+            </div>
+
+            {/* Meeting Location */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Meeting Location</label>
+              <input
+                type="text"
+                value={clubInfo.meetingLocation}
+                onChange={(e) => setClubInfo({ ...clubInfo, meetingLocation: e.target.value })}
+                className="w-full p-2 border rounded-lg"
+                placeholder="e.g. Campus Room 203"
+              />
+            </div>
+
+            {/* Current Member Count */}
+            <div>
+              <label className="block text-sm font-medium mb-2">Current Member Count</label>
+              <input
+                type="number"
+                value={clubInfo.currentMemberCount}
+                onChange={(e) => setClubInfo({ ...clubInfo, currentMemberCount: e.target.value })}
+                className="w-full p-2 border rounded-lg"
+                min={0}
+              />
+            </div>
+
+            {/* Logo Upload */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-2">Upload Logo</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setLogo(e.target.files?.[0] || null)}
+                className="w-full p-2 border rounded-lg"
+              />
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+            {outputType === 'pdf' ? (
+              <FaFilePdf className="w-5 h-5" />
+            ) : (
+              <FaInstagram className="w-5 h-5" />
+            )}
+            {loading ? 'Generating...' : `Download ${outputType === 'pdf' ? 'PDF Poster' : 'Social Post'}`}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
